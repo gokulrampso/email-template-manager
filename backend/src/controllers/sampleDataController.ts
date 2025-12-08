@@ -71,3 +71,4 @@ export const remove = asyncHandler(async (req: Request, res: Response) => {
   return apiResponse.success(res, { templateId: id }, 'Sample data deleted successfully');
 });
 
+

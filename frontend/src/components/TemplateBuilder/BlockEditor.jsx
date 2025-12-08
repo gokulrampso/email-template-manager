@@ -561,3 +561,4 @@ function FooterEditor({ content, onChange }) {
 
 export default BlockEditor;
 
+

@@ -30,3 +30,4 @@ export const DYNAMODB_TABLE = process.env.DYNAMODB_TABLE || 'EmailTemplates';
 export const S3_BUCKET = process.env.S3_BUCKET || 'email-template-assets';
 export const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
 
+

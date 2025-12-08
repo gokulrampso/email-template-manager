@@ -1,0 +1,405 @@
+{
+	"info": {
+		"_postman_id": "email-template-manager-api",
+		"name": "Email Template Manager API",
+		"description": "Complete API collection for Email Template Management System",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Health Check",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/health",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "Check if the API server is running"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Templates",
+			"item": [
+				{
+					"name": "Check Template Name",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/templates/check-name?name=my_template_name&excludeId=",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"templates",
+								"check-name"
+							],
+							"query": [
+								{
+									"key": "name",
+									"value": "my_template_name",
+									"description": "Template name to check"
+								},
+								{
+									"key": "excludeId",
+									"value": "",
+									"description": "Optional: Template ID to exclude from check",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Check if a template name already exists (for duplicate checking)"
+					},
+					"response": []
+				},
+				{
+					"name": "Create Template",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"welcome_email\",\n  \"brandId\": \"brand_123\",\n  \"language\": \"en\",\n  \"htmlContent\": \"<!DOCTYPE html>\\n<html>\\n<head>\\n  <title>Welcome</title>\\n</head>\\n<body>\\n  <h1>Hi {{user.name}}</h1>\\n  <p>Welcome to our platform!</p>\\n</body>\\n</html>\",\n  \"sampleData\": {\n    \"user.name\": \"John Doe\"\n  }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/templates",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"templates"
+							]
+						},
+						"description": "Create a new template (version = 1). Name will be automatically converted to snake_case."
+					},
+					"response": []
+				},
+				{
+					"name": "List All Templates",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/templates",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"templates"
+							]
+						},
+						"description": "Get list of all templates (latest version only)"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Template by ID",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/templates/{{template_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"templates",
+								"{{template_id}}"
+							]
+						},
+						"description": "Get the latest version of a template by ID"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Template",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"name\": \"welcome_email_updated\",\n  \"brandId\": \"brand_123\",\n  \"language\": \"en\",\n  \"htmlContent\": \"<!DOCTYPE html>\\n<html>\\n<head>\\n  <title>Welcome Updated</title>\\n</head>\\n<body>\\n  <h1>Hi {{user.name}}</h1>\\n  <p>Welcome to our platform! We're excited to have you.</p>\\n</body>\\n</html>\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/templates/{{template_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"templates",
+								"{{template_id}}"
+							]
+						},
+						"description": "Update template. Creates a new version only if HTML content, name, brandId, or language has changed."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Template",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/templates/{{template_id}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"templates",
+								"{{template_id}}"
+							]
+						},
+						"description": "Delete a template and all its versions"
+					},
+					"response": []
+				},
+				{
+					"name": "List Template Versions",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/templates/{{template_id}}/versions",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"templates",
+								"{{template_id}}",
+								"versions"
+							]
+						},
+						"description": "Get list of all versions for a template"
+					},
+					"response": []
+				},
+				{
+					"name": "Get Specific Version",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/templates/{{template_id}}/versions/{{version_number}}",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"templates",
+								"{{template_id}}",
+								"versions",
+								"{{version_number}}"
+							]
+						},
+						"description": "Get a specific version of a template"
+					},
+					"response": []
+				},
+				{
+					"name": "Restore Version",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/templates/{{template_id}}/versions/{{version_number}}/restore",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"templates",
+								"{{template_id}}",
+								"versions",
+								"{{version_number}}",
+								"restore"
+							]
+						},
+						"description": "Restore a specific version (creates a new version from the old one)"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Sample Data",
+			"item": [
+				{
+					"name": "Get Sample Data",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/templates/{{template_id}}/sample-data",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"templates",
+								"{{template_id}}",
+								"sample-data"
+							]
+						},
+						"description": "Get sample data for a template (placeholder values)"
+					},
+					"response": []
+				},
+				{
+					"name": "Update Sample Data",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"sampleData\": {\n    \"user.name\": \"Jane Doe\",\n    \"user.email\": \"jane@example.com\",\n    \"company.name\": \"Acme Corp\"\n  }\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/api/templates/{{template_id}}/sample-data",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"templates",
+								"{{template_id}}",
+								"sample-data"
+							]
+						},
+						"description": "Create or update sample data for a template. This does NOT create a new template version."
+					},
+					"response": []
+				},
+				{
+					"name": "Delete Sample Data",
+					"request": {
+						"method": "DELETE",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/templates/{{template_id}}/sample-data",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"templates",
+								"{{template_id}}",
+								"sample-data"
+							]
+						},
+						"description": "Delete sample data for a template"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "Assets",
+			"item": [
+				{
+					"name": "Upload Image",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "formdata",
+							"formdata": [
+								{
+									"key": "file",
+									"type": "file",
+									"src": [],
+									"description": "Image file to upload (JPEG, PNG, GIF, WebP, SVG - max 5MB)"
+								},
+								{
+									"key": "templateId",
+									"value": "{{template_id}}",
+									"type": "text",
+									"description": "Template ID for organizing images in S3"
+								}
+							]
+						},
+						"url": {
+							"raw": "{{base_url}}/api/assets/upload",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"api",
+								"assets",
+								"upload"
+							]
+						},
+						"description": "Upload an image to S3. Returns the public URL of the uploaded image."
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:3001",
+			"type": "string"
+		},
+		{
+			"key": "template_id",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "version_number",
+			"value": "1",
+			"type": "string"
+		}
+	]
+}
+
