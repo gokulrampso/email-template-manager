@@ -15,9 +15,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/health",
+							"raw": "{{app.var.base_url}}/health",
 							"host": [
-								"{{base_url}}"
+								"{{app.var.base_url}}"
 							],
 							"path": [
 								"health"
@@ -38,9 +38,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/api/templates/check-name?name=my_template_name&excludeId=",
+							"raw": "{{app.var.base_url}}/api/templates/check-name?name=my_template_name&excludeId=",
 							"host": [
-								"{{base_url}}"
+								"{{app.var.base_url}}"
 							],
 							"path": [
 								"api",
@@ -77,7 +77,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"name\": \"welcome_email\",\n  \"brandId\": \"brand_123\",\n  \"language\": \"en\",\n  \"htmlContent\": \"<!DOCTYPE html>\\n<html>\\n<head>\\n  <title>Welcome</title>\\n</head>\\n<body>\\n  <h1>Hi {{user.name}}</h1>\\n  <p>Welcome to our platform!</p>\\n</body>\\n</html>\",\n  \"sampleData\": {\n    \"user.name\": \"John Doe\"\n  }\n}",
+							"raw": "{\n  \"name\": \"welcome_email\",\n  \"brandId\": \"brand_123\",\n  \"language\": \"en\",\n  \"htmlContent\": \"<!DOCTYPE html>\\n<html>\\n<head>\\n  <title>Welcome</title>\\n</head>\\n<body>\\n  <h1>Hi {{app.var.user.name}}</h1>\\n  <p>Welcome to our platform!</p>\\n</body>\\n</html>\",\n  \"sampleData\": {\n    \"app.var.user.name\": \"John Doe\"\n  }\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -85,9 +85,9 @@
 							}
 						},
 						"url": {
-							"raw": "{{base_url}}/api/templates",
+							"raw": "{{app.var.base_url}}/api/templates",
 							"host": [
-								"{{base_url}}"
+								"{{app.var.base_url}}"
 							],
 							"path": [
 								"api",
@@ -104,9 +104,9 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/api/templates",
+							"raw": "{{app.var.base_url}}/api/templates",
 							"host": [
-								"{{base_url}}"
+								"{{app.var.base_url}}"
 							],
 							"path": [
 								"api",
@@ -123,14 +123,14 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/api/templates/{{template_id}}",
+							"raw": "{{app.var.base_url}}/api/templates/{{app.var.template_id}}",
 							"host": [
-								"{{base_url}}"
+								"{{app.var.base_url}}"
 							],
 							"path": [
 								"api",
 								"templates",
-								"{{template_id}}"
+								"{{app.var.template_id}}"
 							]
 						},
 						"description": "Get the latest version of a template by ID"
@@ -149,7 +149,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"name\": \"welcome_email_updated\",\n  \"brandId\": \"brand_123\",\n  \"language\": \"en\",\n  \"htmlContent\": \"<!DOCTYPE html>\\n<html>\\n<head>\\n  <title>Welcome Updated</title>\\n</head>\\n<body>\\n  <h1>Hi {{user.name}}</h1>\\n  <p>Welcome to our platform! We're excited to have you.</p>\\n</body>\\n</html>\"\n}",
+							"raw": "{\n  \"name\": \"welcome_email_updated\",\n  \"brandId\": \"brand_123\",\n  \"language\": \"en\",\n  \"htmlContent\": \"<!DOCTYPE html>\\n<html>\\n<head>\\n  <title>Welcome Updated</title>\\n</head>\\n<body>\\n  <h1>Hi {{app.var.user.name}}</h1>\\n  <p>Welcome to our platform! We're excited to have you.</p>\\n</body>\\n</html>\"\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -157,14 +157,14 @@
 							}
 						},
 						"url": {
-							"raw": "{{base_url}}/api/templates/{{template_id}}",
+							"raw": "{{app.var.base_url}}/api/templates/{{app.var.template_id}}",
 							"host": [
-								"{{base_url}}"
+								"{{app.var.base_url}}"
 							],
 							"path": [
 								"api",
 								"templates",
-								"{{template_id}}"
+								"{{app.var.template_id}}"
 							]
 						},
 						"description": "Update template. Creates a new version only if HTML content, name, brandId, or language has changed."
@@ -177,14 +177,14 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/api/templates/{{template_id}}",
+							"raw": "{{app.var.base_url}}/api/templates/{{app.var.template_id}}",
 							"host": [
-								"{{base_url}}"
+								"{{app.var.base_url}}"
 							],
 							"path": [
 								"api",
 								"templates",
-								"{{template_id}}"
+								"{{app.var.template_id}}"
 							]
 						},
 						"description": "Delete a template and all its versions"
@@ -197,14 +197,14 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/api/templates/{{template_id}}/versions",
+							"raw": "{{app.var.base_url}}/api/templates/{{app.var.template_id}}/versions",
 							"host": [
-								"{{base_url}}"
+								"{{app.var.base_url}}"
 							],
 							"path": [
 								"api",
 								"templates",
-								"{{template_id}}",
+								"{{app.var.template_id}}",
 								"versions"
 							]
 						},
@@ -218,16 +218,16 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/api/templates/{{template_id}}/versions/{{version_number}}",
+							"raw": "{{app.var.base_url}}/api/templates/{{app.var.template_id}}/versions/{{app.var.version_number}}",
 							"host": [
-								"{{base_url}}"
+								"{{app.var.base_url}}"
 							],
 							"path": [
 								"api",
 								"templates",
-								"{{template_id}}",
+								"{{app.var.template_id}}",
 								"versions",
-								"{{version_number}}"
+								"{{app.var.version_number}}"
 							]
 						},
 						"description": "Get a specific version of a template"
@@ -240,16 +240,16 @@
 						"method": "POST",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/api/templates/{{template_id}}/versions/{{version_number}}/restore",
+							"raw": "{{app.var.base_url}}/api/templates/{{app.var.template_id}}/versions/{{app.var.version_number}}/restore",
 							"host": [
-								"{{base_url}}"
+								"{{app.var.base_url}}"
 							],
 							"path": [
 								"api",
 								"templates",
-								"{{template_id}}",
+								"{{app.var.template_id}}",
 								"versions",
-								"{{version_number}}",
+								"{{app.var.version_number}}",
 								"restore"
 							]
 						},
@@ -268,14 +268,14 @@
 						"method": "GET",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/api/templates/{{template_id}}/sample-data",
+							"raw": "{{app.var.base_url}}/api/templates/{{app.var.template_id}}/sample-data",
 							"host": [
-								"{{base_url}}"
+								"{{app.var.base_url}}"
 							],
 							"path": [
 								"api",
 								"templates",
-								"{{template_id}}",
+								"{{app.var.template_id}}",
 								"sample-data"
 							]
 						},
@@ -295,7 +295,7 @@
 						],
 						"body": {
 							"mode": "raw",
-							"raw": "{\n  \"sampleData\": {\n    \"user.name\": \"Jane Doe\",\n    \"user.email\": \"jane@example.com\",\n    \"company.name\": \"Acme Corp\"\n  }\n}",
+							"raw": "{\n  \"sampleData\": {\n    \"app.var.user.name\": \"Jane Doe\",\n    \"app.var.user.email\": \"jane@example.com\",\n    \"app.var.company.name\": \"Acme Corp\"\n  }\n}",
 							"options": {
 								"raw": {
 									"language": "json"
@@ -303,14 +303,14 @@
 							}
 						},
 						"url": {
-							"raw": "{{base_url}}/api/templates/{{template_id}}/sample-data",
+							"raw": "{{app.var.base_url}}/api/templates/{{app.var.template_id}}/sample-data",
 							"host": [
-								"{{base_url}}"
+								"{{app.var.base_url}}"
 							],
 							"path": [
 								"api",
 								"templates",
-								"{{template_id}}",
+								"{{app.var.template_id}}",
 								"sample-data"
 							]
 						},
@@ -324,14 +324,14 @@
 						"method": "DELETE",
 						"header": [],
 						"url": {
-							"raw": "{{base_url}}/api/templates/{{template_id}}/sample-data",
+							"raw": "{{app.var.base_url}}/api/templates/{{app.var.template_id}}/sample-data",
 							"host": [
-								"{{base_url}}"
+								"{{app.var.base_url}}"
 							],
 							"path": [
 								"api",
 								"templates",
-								"{{template_id}}",
+								"{{app.var.template_id}}",
 								"sample-data"
 							]
 						},
@@ -360,16 +360,16 @@
 								},
 								{
 									"key": "templateId",
-									"value": "{{template_id}}",
+									"value": "{{app.var.template_id}}",
 									"type": "text",
 									"description": "Template ID for organizing images in S3"
 								}
 							]
 						},
 						"url": {
-							"raw": "{{base_url}}/api/assets/upload",
+							"raw": "{{app.var.base_url}}/api/assets/upload",
 							"host": [
-								"{{base_url}}"
+								"{{app.var.base_url}}"
 							],
 							"path": [
 								"api",
@@ -386,17 +386,17 @@
 	],
 	"variable": [
 		{
-			"key": "base_url",
+			"key": "app.var.base_url",
 			"value": "http://localhost:3001",
 			"type": "string"
 		},
 		{
-			"key": "template_id",
+			"key": "app.var.template_id",
 			"value": "",
 			"type": "string"
 		},
 		{
-			"key": "version_number",
+			"key": "app.var.version_number",
 			"value": "1",
 			"type": "string"
 		}

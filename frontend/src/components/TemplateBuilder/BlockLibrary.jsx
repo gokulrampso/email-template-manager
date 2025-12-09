@@ -119,7 +119,7 @@ function BlockLibrary({ onAddBlock }) {
       <div className="mt-6 p-4 rounded-xl bg-primary-500/10 border border-primary-500/20">
         <h4 className="text-primary-400 text-sm font-medium mb-2">💡 Tip</h4>
         <p className="text-white/60 text-xs">
-          Use placeholders like <code className="text-primary-300">{'{{user.name}}'}</code> to personalize your emails.
+          Use placeholders like <code className="text-primary-300">{'{{app.var.user.name}}'}</code> to personalize your emails.
         </p>
       </div>
     </div>

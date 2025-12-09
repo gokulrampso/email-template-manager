@@ -27,9 +27,9 @@ This folder contains Postman collection and environment files for testing the Em
 
 The environment includes the following variables:
 
-- **base_url**: API base URL (default: `http://localhost:3001`)
-- **template_id**: Template ID for testing (set after creating a template)
-- **version_number**: Version number for testing (default: `1`)
+- **app.var.base_url**: API base URL (default: `http://localhost:3001`)
+- **app.var.template_id**: Template ID for testing (set after creating a template)
+- **app.var.version_number**: Version number for testing (default: `1`)
 
 ## API Endpoints
 
@@ -57,8 +57,8 @@ The environment includes the following variables:
 
 ## Usage Tips
 
-1. **Create a template first** - Use "Create Template" request to get a `template_id`
-2. **Update template_id variable** - After creating a template, copy the `templateId` from the response and update the `template_id` environment variable
+1. **Create a template first** - Use "Create Template" request to get a `templateId`
+2. **Update app.var.template_id variable** - After creating a template, copy the `templateId` from the response and update the `app.var.template_id` environment variable
 3. **Test versioning** - Update a template multiple times to create versions, then test version endpoints
 4. **Upload images** - Use the "Upload Image" request with a file and template ID
 
@@ -69,13 +69,52 @@ The environment includes the following variables:
 3. Run "Health Check" to verify server is running
 4. Run "Create Template" to create your first template
 5. Copy the `templateId` from response
-6. Update `template_id` environment variable
-7. Test other endpoints using the `template_id` variable
+6. Update `app.var.template_id` environment variable
+7. Test other endpoints using the `app.var.template_id` variable
 
 ## Notes
 
-- Make sure the backend server is running on `http://localhost:3001` (or update `base_url`)
+- Make sure the backend server is running on `http://localhost:3001` (or update `app.var.base_url`)
 - Template names are automatically converted to snake_case
 - Sample data updates do NOT create new template versions
 - Image uploads require a valid template ID and file (max 5MB)
+- All endpoints return JSON responses with consistent error formatting
+- Version numbers start at 1 and increment automatically on updates
+- Template updates only create new versions if content, name, brandId, or language changes
+
+## Request Examples
+
+### Create Template
+
+```json
+{
+  "name": "welcome_email",
+  "brandId": "brand_123",
+  "language": "en",
+  "htmlContent": "<!DOCTYPE html><html><body><h1>Hi {{app.var.user.name}}</h1></body></html>",
+  "sampleData": {
+    "user.name": "John Doe"
+  }
+}
+```
+
+### Update Sample Data
+
+```json
+{
+  "sampleData": {
+    "app.var.user.name": "Jane Doe",
+    "app.var.user.email": "jane@example.com",
+    "app.var.company.name": "Acme Corp"
+  }
+}
+```
+
+### Image Upload
+
+- Use `multipart/form-data` format
+- Form field name: `file`
+- Additional field: `templateId` (string)
+- Supported formats: JPEG, PNG, GIF, WebP, SVG
+- Max file size: 5MB
 
