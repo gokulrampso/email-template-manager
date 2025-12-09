@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { templateApi } from '../services/api';
 import { LoadingSpinner } from '../components/LoadingSpinner';
@@ -10,6 +10,8 @@ function TemplateList() {
   const [isLoading, setIsLoading] = useState(true);
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, template: null });
   const [isDeleting, setIsDeleting] = useState(false);
+  const [sortField, setSortField] = useState(null); // 'name' or 'updatedAt'
+  const [sortDirection, setSortDirection] = useState('asc'); // 'asc' or 'desc'
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -60,6 +62,67 @@ function TemplateList() {
       hour: '2-digit',
       minute: '2-digit',
     });
+  };
+
+  const handleSort = (field) => {
+    if (sortField === field) {
+      // Toggle direction if clicking the same field
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      // Set new field and default to ascending
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
+
+  const sortedTemplates = useMemo(() => {
+    if (!sortField) return templates;
+
+    return [...templates].sort((a, b) => {
+      let aValue, bValue;
+
+      if (sortField === 'name') {
+        aValue = (a.name || '').toLowerCase();
+        bValue = (b.name || '').toLowerCase();
+      } else if (sortField === 'updatedAt') {
+        aValue = new Date(a.updatedAt || 0).getTime();
+        bValue = new Date(b.updatedAt || 0).getTime();
+      } else {
+        return 0;
+      }
+
+      if (aValue < bValue) {
+        return sortDirection === 'asc' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortDirection === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+  }, [templates, sortField, sortDirection]);
+
+  const SortIcon = ({ field }) => {
+    if (sortField !== field) {
+      return (
+        <svg className="w-4 h-4 ml-1 text-white/30" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4" />
+        </svg>
+      );
+    }
+
+    if (sortDirection === 'asc') {
+      return (
+        <svg className="w-4 h-4 ml-1 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 15l7-7 7 7" />
+        </svg>
+      );
+    } else {
+      return (
+        <svg className="w-4 h-4 ml-1 text-primary-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      );
+    }
   };
 
   return (
@@ -134,22 +197,35 @@ function TemplateList() {
           <table className="data-table">
             <thead>
               <tr>
-                <th>Template Name</th>
+                <th>
+                  <button
+                    onClick={() => handleSort('name')}
+                    className="flex items-center gap-1 w-full text-left hover:text-white transition-colors cursor-pointer"
+                  >
+                    <span>Template Name</span>
+                    <SortIcon field="name" />
+                  </button>
+                </th>
                 <th>Version</th>
                 <th>Brand</th>
                 <th>Language</th>
-                <th>Last Updated</th>
+                <th>
+                  <button
+                    onClick={() => handleSort('updatedAt')}
+                    className="flex items-center gap-1 w-full text-left hover:text-white transition-colors cursor-pointer"
+                  >
+                    <span>Last Updated</span>
+                    <SortIcon field="updatedAt" />
+                  </button>
+                </th>
                 <th className="text-right">Actions</th>
               </tr>
             </thead>
             <tbody>
-              {templates.map((template) => (
+              {sortedTemplates.map((template) => (
                 <tr key={template.templateId}>
                   <td>
                     <div className="font-medium text-white">{template.name}</div>
-                    <div className="text-xs text-white/40 font-mono mt-0.5">
-                      {template.templateId.slice(0, 8)}...
-                    </div>
                   </td>
                   <td>
                     <span className="badge badge-primary">v{template.version}</span>

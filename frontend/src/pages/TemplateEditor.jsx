@@ -1,5 +1,5 @@
-import { useState, useEffect, useCallback, useRef } from 'react';
-import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
+import { useParams, useNavigate, useSearchParams, Link } from 'react-router-dom';
 import { templateApi, toSnakeCase } from '../services/api';
 import { LoadingSpinner, FullPageLoader } from '../components/LoadingSpinner';
 import ImageUploader from '../components/ImageUploader';
@@ -42,9 +42,6 @@ function TemplateEditor() {
   });
   const [builderKey, setBuilderKey] = useState(0); // Key to force re-mount of TemplateBuilder
   
-  // Sample data for preview
-  const [sampleData, setSampleData] = useState(SAMPLE_DATA_SETS[0].data);
-  const [showSampleDataPanel, setShowSampleDataPanel] = useState(false);
 
   const [placeholders, setPlaceholders] = useState([]);
   
@@ -93,10 +90,6 @@ function TemplateEditor() {
           htmlContent: generatedHtml,
         }));
         
-        // Set the template's sample data
-        if (selectedTemplate.sampleData) {
-          setSampleData(selectedTemplate.sampleData);
-        }
         
         // Force TemplateBuilder to re-mount with new blocks
         setBuilderKey(prev => prev + 1);
@@ -114,11 +107,7 @@ function TemplateEditor() {
   const loadTemplate = async () => {
     try {
       setIsLoading(true);
-      const [templateResponse, sampleDataResponse] = await Promise.all([
-        templateApi.getById(id),
-        templateApi.getSampleData(id).catch(() => ({ data: { sampleData: {} } })), // Fallback if no sample data
-      ]);
-      
+      const templateResponse = await templateApi.getById(id);
       const data = templateResponse.data;
       setTemplate({
         name: data.name || '',
@@ -127,10 +116,6 @@ function TemplateEditor() {
         htmlContent: data.htmlContent || '',
       });
       
-      // Load saved sample data separately
-      if (sampleDataResponse.data?.sampleData && Object.keys(sampleDataResponse.data.sampleData).length > 0) {
-        setSampleData(sampleDataResponse.data.sampleData);
-      }
     } catch (error) {
       toast.error(error.message || 'Failed to load template');
       navigate('/');
@@ -187,34 +172,6 @@ function TemplateEditor() {
     };
   }, []);
 
-  // Save sample data separately (doesn't create version)
-  const saveSampleData = useCallback(async (templateId, data) => {
-    try {
-      await templateApi.updateSampleData(templateId, data);
-      // Silent save - no toast for sample data updates
-    } catch (error) {
-      console.error('Failed to save sample data:', error);
-      // Don't show error toast for sample data - it's not critical
-    }
-  }, []);
-
-  // Auto-save sample data when it changes (debounced) - only for existing templates
-  const sampleDataTimeoutRef = useRef(null);
-  useEffect(() => {
-    if (!isNewTemplate && id && Object.keys(sampleData).length > 0) {
-      if (sampleDataTimeoutRef.current) {
-        clearTimeout(sampleDataTimeoutRef.current);
-      }
-      sampleDataTimeoutRef.current = setTimeout(() => {
-        saveSampleData(id, sampleData);
-      }, 1000); // 1 second debounce
-    }
-    return () => {
-      if (sampleDataTimeoutRef.current) {
-        clearTimeout(sampleDataTimeoutRef.current);
-      }
-    };
-  }, [sampleData, isNewTemplate, id, saveSampleData]);
 
   const handleSave = async (htmlContent = template.htmlContent) => {
     if (!template.name.trim()) {
@@ -234,28 +191,17 @@ function TemplateEditor() {
 
     setIsSaving(true);
     try {
-      // Save template (without sampleData - that's separate)
+      // Save template
       const dataToSave = { 
         ...template, 
         htmlContent,
       };
       
       if (isNewTemplate) {
-        // Create template with initial sample data
-        const response = await templateApi.create({
-          ...dataToSave,
-          sampleData: sampleData, // Include for initial creation
-        });
-        
-        // Save sample data separately
-        if (Object.keys(sampleData).length > 0) {
-          await templateApi.updateSampleData(response.data.templateId, sampleData);
-        }
-        
+        const response = await templateApi.create(dataToSave);
         toast.success(`Template "${response.data.name}" created successfully!`);
         navigate(`/templates/${response.data.templateId}/edit`);
       } else {
-        // Update template (sampleData is saved separately via auto-save)
         const response = await templateApi.update(id, dataToSave);
         // Check if a new version was created or no changes detected
         if (response.message.includes('No changes')) {
@@ -289,10 +235,6 @@ function TemplateEditor() {
         htmlContent: generatedHtml,
       }));
       
-      // Set the template's sample data
-      if (selectedTemplate.sampleData) {
-        setSampleData(selectedTemplate.sampleData);
-      }
       
       // Force TemplateBuilder to re-mount with new blocks
       setBuilderKey(prev => prev + 1);
@@ -300,10 +242,6 @@ function TemplateEditor() {
     setShowTemplateSelector(false);
   };
 
-  // Handle sample data selection
-  const handleSelectData = (data) => {
-    setSampleData(data);
-  };
 
   // Handle builder changes (real-time sync)
   const handleBuilderChange = useCallback((html, newBlocks, newSettings) => {
@@ -326,10 +264,6 @@ function TemplateEditor() {
     toast.success('Image inserted into template');
   };
 
-  // Update sample data value
-  const updateSampleDataValue = (key, value) => {
-    setSampleData(prev => ({ ...prev, [key]: value }));
-  };
 
   if (isLoading) {
     return <FullPageLoader message="Loading template..." />;
@@ -342,7 +276,6 @@ function TemplateEditor() {
         isOpen={showTemplateSelector}
         onClose={() => setShowTemplateSelector(false)}
         onSelectTemplate={handleSelectTemplate}
-        onSelectData={handleSelectData}
       />
 
       {/* Header */}
@@ -358,16 +291,19 @@ function TemplateEditor() {
           </p>
         </div>
         <div className="flex items-center gap-3">
-          {/* Sample Data Toggle */}
-          <button
-            onClick={() => setShowSampleDataPanel(!showSampleDataPanel)}
-            className={`btn-secondary py-2 px-3 text-sm flex items-center gap-2 ${showSampleDataPanel ? 'bg-primary-500/20 border-primary-500/30' : ''}`}
-          >
-            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 7v10c0 2.21 3.582 4 8 4s8-1.79 8-4V7M4 7c0 2.21 3.582 4 8 4s8-1.79 8-4M4 7c0-2.21 3.582-4 8-4s8 1.79 8 4" />
-            </svg>
-            Sample Data
-          </button>
+          {/* Preview Button - Only for edit mode */}
+          {!isNewTemplate && id && (
+            <Link
+              to={`/templates/${id}/preview`}
+              className="btn-secondary py-2 px-4 text-sm flex items-center gap-2"
+            >
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+              </svg>
+              Preview
+            </Link>
+          )}
 
           {/* Template Selector (for new templates) */}
           {isNewTemplate && (
@@ -427,60 +363,6 @@ function TemplateEditor() {
         </div>
       </div>
 
-      {/* Sample Data Panel */}
-      {showSampleDataPanel && (
-        <div className="glass-card p-4 mb-6 animate-fade-in">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h3 className="text-white font-medium">Sample Data for Preview</h3>
-              <p className="text-white/50 text-sm">
-                {isNewTemplate 
-                  ? 'Edit values to test your placeholders'
-                  : 'Edit values to test your placeholders • Auto-saves (does not create version)'}
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              {/* Only show dropdown selector for new templates */}
-              {isNewTemplate && (
-                <select
-                  onChange={(e) => {
-                    const dataSet = SAMPLE_DATA_SETS.find(d => d.id === e.target.value);
-                    if (dataSet) setSampleData(dataSet.data);
-                  }}
-                  className="input py-1.5 text-sm w-48"
-                >
-                  {SAMPLE_DATA_SETS.map((ds) => (
-                    <option key={ds.id} value={ds.id}>{ds.name}</option>
-                  ))}
-                </select>
-              )}
-              <button
-                onClick={() => setShowSampleDataPanel(false)}
-                className="btn-ghost p-1.5"
-              >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 max-h-48 overflow-y-auto">
-            {Object.entries(sampleData).map(([key, value]) => (
-              <div key={key}>
-                <label className="block text-xs font-mono text-primary-400 mb-1">
-                  {`{{${key}}}`}
-                </label>
-                <input
-                  type="text"
-                  value={value}
-                  onChange={(e) => updateSampleDataValue(key, e.target.value)}
-                  className="input py-1.5 text-sm"
-                />
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       {/* Template Name & Settings Bar */}
       <div className="glass-card p-4 mb-6">
@@ -571,7 +453,6 @@ function TemplateEditor() {
           key={builderKey}
           initialBlocks={blocks}
           initialSettings={builderSettings}
-          sampleData={sampleData}
           fallbackHtml={template.htmlContent}
           isExistingTemplate={!isNewTemplate}
           onChange={handleBuilderChange}
@@ -581,7 +462,6 @@ function TemplateEditor() {
         <CodeEditor
           template={template}
           placeholders={placeholders}
-          sampleData={sampleData}
           isNewTemplate={isNewTemplate}
           isSaving={isSaving}
           id={id}
@@ -595,16 +475,74 @@ function TemplateEditor() {
 }
 
 // Code Editor Component (original editor)
-function CodeEditor({ template, placeholders, sampleData, isNewTemplate, isSaving, id, onChangeHtml, onSave, onImageUpload }) {
-  // Generate preview with sample data
-  const getPreviewHtml = () => {
-    let html = template.htmlContent;
-    Object.entries(sampleData).forEach(([key, value]) => {
-      const regex = new RegExp(`\\{\\{\\s*${escapeRegex(key)}\\s*\\}\\}`, 'g');
-      html = html.replace(regex, value);
+function CodeEditor({ template, placeholders, isNewTemplate, isSaving, id, onChangeHtml, onSave, onImageUpload }) {
+  // Helper function to highlight placeholders in HTML (including in links, attributes, etc.)
+  const highlightPlaceholders = (htmlContent) => {
+    if (!htmlContent) return '';
+    
+    let processedHtml = htmlContent;
+    
+    // Step 1: Mark elements with placeholders in attributes
+    // Find attributes with placeholders like href="{{action.url}}"
+    const attrPlaceholderRegex = /<(\w+)([^>]*?)(\w+)=(["'])([^"']*\{\{[^}]+\}\}[^"']*)\4([^>]*)>/g;
+    processedHtml = processedHtml.replace(attrPlaceholderRegex, (match, tagName, beforeAttrs, attrName, quote, attrValue, afterAttrs) => {
+      // Add data attribute to mark this element
+      return `<${tagName}${beforeAttrs}${attrName}=${quote}${attrValue}${quote}${afterAttrs} data-placeholder-attr="${attrName}">`;
     });
-    return html;
+    
+    // Step 2: Add CSS to highlight elements with placeholders in attributes
+    const highlightStyle = `
+      <style>
+        [data-placeholder-attr] {
+          position: relative;
+          display: inline-block;
+        }
+        [data-placeholder-attr]::after {
+          content: "[" attr(data-placeholder-attr) "={{...}}]";
+          display: inline-block;
+          background-color: #fef3c7;
+          color: #92400e;
+          padding: 2px 6px;
+          margin-left: 6px;
+          border-radius: 3px;
+          font-size: 0.75em;
+          font-weight: 600;
+          font-family: monospace;
+          vertical-align: middle;
+          white-space: nowrap;
+        }
+      </style>
+    `;
+    
+    // Inject CSS
+    if (processedHtml.includes('</head>')) {
+      processedHtml = processedHtml.replace('</head>', `${highlightStyle}</head>`);
+    } else if (processedHtml.includes('<body')) {
+      processedHtml = processedHtml.replace('<body', `${highlightStyle}<body`);
+    } else {
+      processedHtml = highlightStyle + processedHtml;
+    }
+    
+    // Step 3: Highlight placeholders in text content (not inside attribute quotes)
+    // Process text nodes between tags
+    processedHtml = processedHtml.replace(/>([^<]+)</g, (match, textContent) => {
+      // Check if text contains placeholders
+      if (textContent.includes('{{')) {
+        const highlighted = textContent.replace(/\{\{([^}]+)\}\}/g, (phMatch, placeholder) => {
+          return `<span style="background-color: #fef3c7; color: #92400e; padding: 2px 4px; border-radius: 3px; font-weight: 500; font-family: monospace; font-size: 0.95em; display: inline;">{{${placeholder.trim()}}}</span>`;
+        });
+        return `>${highlighted}<`;
+      }
+      return match;
+    });
+    
+    return processedHtml;
   };
+
+  // Generate preview HTML with highlighted placeholders
+  const previewHtml = useMemo(() => {
+    return highlightPlaceholders(template.htmlContent || '');
+  }, [template.htmlContent]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -631,7 +569,7 @@ function CodeEditor({ template, placeholders, sampleData, isNewTemplate, isSavin
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
-                    <span>{isNewTemplate ? 'Create' : 'Save'}</span>
+                    <span>{isNewTemplate ? 'Create' : 'Update'}</span>
                   </>
                 )}
               </button>
@@ -667,12 +605,15 @@ function CodeEditor({ template, placeholders, sampleData, isNewTemplate, isSavin
         )}
       </div>
 
-      {/* Preview Panel */}
+      {/* Preview Panel - Raw HTML without data replacement */}
       <div className="glass-card p-6 sticky top-24">
-        <h2 className="text-lg font-medium text-white mb-4">Live Preview (with Sample Data)</h2>
+        <h2 className="text-lg font-medium text-white mb-4">Preview (Raw Template)</h2>
+        <p className="text-xs text-white/50 mb-4">
+          Template preview without data. Use Preview screen to test with sample values.
+        </p>
         <div className="preview-container h-[600px] rounded-xl overflow-hidden">
           <iframe
-            srcDoc={getPreviewHtml() || '<p style="color: #999; padding: 20px;">Enter HTML to see preview...</p>'}
+            srcDoc={previewHtml || '<p style="color: #999; padding: 20px;">Enter HTML to see preview...</p>'}
             title="Template Preview"
             className="w-full h-full bg-white"
             sandbox="allow-same-origin"

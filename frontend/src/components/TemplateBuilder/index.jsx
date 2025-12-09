@@ -12,7 +12,7 @@ const DEFAULT_SETTINGS = {
   fontFamily: 'Arial, sans-serif',
 };
 
-function TemplateBuilder({ initialBlocks = [], initialSettings = {}, sampleData = {}, fallbackHtml = '', isExistingTemplate = false, onChange, onSave }) {
+function TemplateBuilder({ initialBlocks = [], initialSettings = {}, fallbackHtml = '', isExistingTemplate = false, onChange, onSave }) {
   // Note: Parent should use a `key` prop to force re-mount when changing templates
   const [blocks, setBlocks] = useState(initialBlocks);
   const [settings, setSettings] = useState({ ...DEFAULT_SETTINGS, ...initialSettings });
@@ -84,17 +84,105 @@ function TemplateBuilder({ initialBlocks = [], initialSettings = {}, sampleData 
     return generateHtml(blocks, settings);
   }, [blocks, settings]);
 
-  // Generate preview HTML with sample data
+  // Extract placeholders from HTML
+  const extractPlaceholders = (htmlContent) => {
+    if (!htmlContent) return [];
+    const regex = /\{\{([^}]+)\}\}/g;
+    const matches = htmlContent.matchAll(regex);
+    const found = new Set();
+    for (const match of matches) {
+      found.add(match[1].trim());
+    }
+    return Array.from(found).sort();
+  };
+
+  // Get placeholders from generated HTML
+  const placeholders = useMemo(() => {
+    const htmlContent = blocks.length > 0 ? html : fallbackHtml;
+    return extractPlaceholders(htmlContent);
+  }, [html, fallbackHtml, blocks.length]);
+
+  // Helper function to highlight placeholders in HTML (including in links, attributes, etc.)
+  const highlightPlaceholders = (htmlContent) => {
+    if (!htmlContent) return '';
+    
+    let processedHtml = htmlContent;
+    
+    // Step 1: Highlight placeholders in HTML attributes (like href="{{action.url}}")
+    // We'll wrap attribute values containing placeholders with a special marker
+    const attrRegex = /(\w+)=(["'])(.*?)\2/g;
+    processedHtml = processedHtml.replace(attrRegex, (match, attrName, quote, attrValue) => {
+      if (attrValue.includes('{{')) {
+        // Mark elements with placeholders in attributes by adding a class
+        // We'll inject CSS later to highlight these
+        return `${attrName}=${quote}${attrValue}${quote}`;
+      }
+      return match;
+    });
+    
+    // Step 2: Add CSS to highlight elements with placeholders in attributes
+    // Find all tags that have placeholders in their attributes and mark them
+    const tagWithPlaceholderAttrRegex = /<(\w+)([^>]*)(\w+)=(["'])([^"']*\{\{[^}]+\}\}[^"']*)\4([^>]*)>/g;
+    processedHtml = processedHtml.replace(tagWithPlaceholderAttrRegex, (match, tagName, before, attrName, quote, attrValue, after) => {
+      // Add a data attribute to indicate this element has placeholders
+      return `<${tagName}${before}${attrName}=${quote}${attrValue}${quote}${after} data-placeholder-attr="${attrName}">`;
+    });
+    
+    // Step 3: Add CSS styles to highlight elements with placeholders in attributes
+    const highlightStyle = `
+      <style>
+        [data-placeholder-attr] {
+          position: relative;
+        }
+        [data-placeholder-attr]::after {
+          content: "[" attr(data-placeholder-attr) "={{...}}]";
+          display: inline-block;
+          background-color: #fef3c7;
+          color: #92400e;
+          padding: 1px 4px;
+          margin-left: 4px;
+          border-radius: 3px;
+          font-size: 0.75em;
+          font-weight: 500;
+          font-family: monospace;
+          vertical-align: middle;
+        }
+        a[data-placeholder-attr]::after,
+        [data-placeholder-attr="href"]::after,
+        [data-placeholder-attr="src"]::after {
+          content: "[" attr(data-placeholder-attr) "={{...}}]";
+        }
+      </style>
+    `;
+    
+    // Inject style in head or before body
+    if (processedHtml.includes('</head>')) {
+      processedHtml = processedHtml.replace('</head>', `${highlightStyle}</head>`);
+    } else if (processedHtml.includes('<body')) {
+      processedHtml = processedHtml.replace('<body', `${highlightStyle}<body`);
+    } else if (!processedHtml.includes('<style>')) {
+      processedHtml = highlightStyle + processedHtml;
+    }
+    
+    // Step 4: Highlight placeholders in text content (not in attributes)
+    // Use a smarter approach: replace placeholders that are NOT inside attribute values
+    const textPlaceholderRegex = />([^<]*(?:\{\{[^}]+\}\}[^<]*)*[^<]*)</g;
+    processedHtml = processedHtml.replace(textPlaceholderRegex, (match) => {
+      // This matches text between tags, now replace placeholders in this text
+      return match.replace(/\{\{([^}]+)\}\}/g, (placeholderMatch, placeholder) => {
+        return `<span style="background-color: #fef3c7; color: #92400e; padding: 2px 4px; border-radius: 3px; font-weight: 500; font-family: monospace; font-size: 0.95em; display: inline;">{{${placeholder.trim()}}}</span>`;
+      });
+    });
+    
+    return processedHtml;
+  };
+
+  // Generate preview HTML - show raw HTML with placeholders highlighted
   // Use fallbackHtml when blocks are empty (for existing templates)
   const previewHtml = useMemo(() => {
-    let previewContent = blocks.length > 0 ? html : fallbackHtml;
-    // Replace placeholders with sample data
-    Object.entries(sampleData).forEach(([key, value]) => {
-      const regex = new RegExp(`\\{\\{\\s*${escapeRegex(key)}\\s*\\}\\}`, 'g');
-      previewContent = previewContent.replace(regex, value);
-    });
-    return previewContent;
-  }, [html, fallbackHtml, blocks.length, sampleData]);
+    const htmlContent = blocks.length > 0 ? html : fallbackHtml;
+    return highlightPlaceholders(htmlContent);
+  }, [html, fallbackHtml, blocks.length]);
 
   // Notify parent of changes whenever blocks or settings change
   useEffect(() => {
@@ -189,8 +277,11 @@ function TemplateBuilder({ initialBlocks = [], initialSettings = {}, sampleData 
           <h3 className="text-white font-medium">Email Preview</h3>
           <div className="flex items-center gap-2">
             <span className="text-white/50 text-sm">{blocks.length} blocks</span>
+            {placeholders.length > 0 && (
+              <span className="text-xs text-white/40">{placeholders.length} placeholder{placeholders.length !== 1 ? 's' : ''}</span>
+            )}
             <button onClick={handleSave} className="btn-primary py-1.5 px-4 text-sm">
-              Save Template
+              {isExistingTemplate ? 'Update' : 'Create'}
             </button>
           </div>
         </div>
@@ -207,22 +298,6 @@ function TemplateBuilder({ initialBlocks = [], initialSettings = {}, sampleData 
             onDeleteBlock={deleteBlock}
             isExistingTemplate={isExistingTemplate}
             hasFallbackHtml={!!fallbackHtml}
-          />
-        </div>
-      </div>
-
-      {/* Right - Live Preview */}
-      <div className="w-96 flex-shrink-0 glass-card overflow-hidden flex flex-col">
-        <div className="p-4 border-b border-white/10 flex items-center justify-between">
-          <h3 className="text-white font-medium">Live Preview</h3>
-          <span className="text-xs text-white/40">with sample data</span>
-        </div>
-        <div className="flex-1 overflow-auto bg-white">
-          <iframe
-            srcDoc={previewHtml}
-            title="Email Preview"
-            className="w-full h-full border-0"
-            sandbox="allow-same-origin"
           />
         </div>
       </div>
@@ -411,11 +486,6 @@ function createBlock(type) {
   };
 
   return defaults[type] || defaults.text;
-}
-
-// Helper to escape regex special characters
-function escapeRegex(string) {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 export default TemplateBuilder;

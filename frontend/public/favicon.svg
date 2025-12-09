@@ -1,40 +1,30 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
-  <!-- Envelope shape -->
-  <path d="M 20 30 L 50 50 L 80 30 L 80 70 L 20 70 Z" 
-        fill="#22c55e" 
-        opacity="0.15" 
-        stroke="#22c55e" 
-        stroke-width="3" 
-        stroke-linecap="round" 
-        stroke-linejoin="round"/>
+  <defs>
+    <!-- Gradient from green to purple (matching the app icon) -->
+    <linearGradient id="iconGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#22c55e;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
+    </linearGradient>
+  </defs>
   
-  <!-- Email flap -->
-  <path d="M 20 30 L 50 50 L 80 30" 
-        fill="#22c55e" 
-        opacity="0.25"/>
+  <!-- Rounded square background with gradient -->
+  <rect x="10" y="10" width="80" height="80" rx="12" ry="12" fill="url(#iconGradient)"/>
   
-  <!-- Template lines inside envelope -->
-  <line x1="30" y1="45" x2="70" y2="45" 
-        stroke="#22c55e" 
-        stroke-width="2.5" 
-        stroke-linecap="round"/>
-  <line x1="30" y1="55" x2="70" y2="55" 
-        stroke="#22c55e" 
-        stroke-width="2.5" 
-        stroke-linecap="round"/>
-  <line x1="30" y1="65" x2="60" y2="65" 
-        stroke="#22c55e" 
-        stroke-width="2.5" 
-        stroke-linecap="round"/>
-  
-  <!-- @ symbol -->
-  <circle cx="65" cy="35" r="7" 
+  <!-- White envelope icon -->
+  <g transform="translate(50, 50)">
+    <path d="M -15 -10 L 0 0 L 15 -10 L 15 10 L -15 10 Z" 
           fill="none" 
-          stroke="#8b5cf6" 
-          stroke-width="2.5"/>
-  <path d="M 65 29 Q 65 27 63 27 Q 61 27 61 29 Q 61 31 63 31 Q 65 31 65 34 L 65 36" 
-        fill="none" 
-        stroke="#8b5cf6" 
-        stroke-width="2.5" 
-        stroke-linecap="round"/>
+          stroke="white" 
+          stroke-width="3" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"/>
+    
+    <!-- Envelope flap -->
+    <path d="M -15 -10 L 0 0 L 15 -10" 
+          fill="none"
+          stroke="white" 
+          stroke-width="3" 
+          stroke-linecap="round" 
+          stroke-linejoin="round"/>
+  </g>
 </svg>

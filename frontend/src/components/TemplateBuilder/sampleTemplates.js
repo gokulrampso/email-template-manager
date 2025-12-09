@@ -10,7 +10,6 @@ export const SAMPLE_TEMPLATES = [
     thumbnail: '👋',
     sampleData: {
       'user.name': 'Sarah Johnson',
-      'user.email': 'sarah@example.com',
       'company.name': 'TechStart Inc.',
       'company.address': '123 Innovation Drive, San Francisco, CA 94102',
       'action.url': 'https://app.techstart.com/get-started',

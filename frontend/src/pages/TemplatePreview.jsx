@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { templateApi } from '../services/api';
 import { FullPageLoader } from '../components/LoadingSpinner';
-import { SAMPLE_DATA_SETS } from '../components/TemplateBuilder/sampleTemplates';
+import { SAMPLE_TEMPLATES } from '../components/TemplateBuilder/sampleTemplates';
 import toast from 'react-hot-toast';
 
 function TemplatePreview() {
@@ -11,22 +11,88 @@ function TemplatePreview() {
   const [isLoading, setIsLoading] = useState(true);
   const [placeholderValues, setPlaceholderValues] = useState({});
   const [showPlaceholderPanel, setShowPlaceholderPanel] = useState(true);
-  const [selectedDataSet, setSelectedDataSet] = useState('default');
+
+  // Find matching template and its sample data
+  const findMatchingTemplateData = (templateName) => {
+    if (!templateName) return null;
+    const lowerName = templateName.toLowerCase();
+    
+    // Check if template name matches any sample template
+    const matchedTemplate = SAMPLE_TEMPLATES.find(t => 
+      lowerName.includes(t.name.toLowerCase()) || 
+      lowerName.includes(t.id)
+    );
+    
+    return matchedTemplate?.sampleData || null;
+  };
+
+  // Extract placeholders from HTML content
+  const extractPlaceholders = (html) => {
+    if (!html) return [];
+    const regex = /\{\{([^}]+)\}\}/g;
+    const matches = html.matchAll(regex);
+    const found = new Set();
+    for (const match of matches) {
+      found.add(match[1].trim());
+    }
+    return Array.from(found).sort();
+  };
+
+  // Get all placeholders from template (merge backend placeholders with dynamically extracted ones)
+  const allPlaceholders = useMemo(() => {
+    if (!template?.htmlContent) return template?.placeholders || [];
+    const extractedPlaceholders = extractPlaceholders(template.htmlContent);
+    const backendPlaceholders = template.placeholders || [];
+    // Merge and deduplicate
+    const merged = new Set([...backendPlaceholders, ...extractedPlaceholders]);
+    return Array.from(merged).sort();
+  }, [template?.htmlContent, template?.placeholders]);
 
   useEffect(() => {
     loadTemplate();
   }, [id, version]);
 
-  // Initialize placeholder values when template loads
+  // Update placeholder values when placeholders change (for new/modified templates)
   useEffect(() => {
-    if (template?.placeholders) {
-      const initialValues = {};
-      template.placeholders.forEach((p) => {
-        initialValues[p] = '';
+    if (allPlaceholders && allPlaceholders.length > 0 && template) {
+      setPlaceholderValues((prev) => {
+        const updated = { ...prev };
+        let hasChanges = false;
+        
+        // Check if we need to initialize from template sample data
+        const isInitialLoad = Object.keys(prev).length === 0;
+        const templateSampleData = findMatchingTemplateData(template.name);
+        
+        // Add any new placeholders that weren't in the previous set
+        allPlaceholders.forEach((p) => {
+          if (!(p in updated)) {
+            hasChanges = true;
+            // If initial load and we have template-specific data, use it
+            if (isInitialLoad && templateSampleData && templateSampleData[p] != null) {
+              updated[p] = String(templateSampleData[p]);
+            } else {
+              updated[p] = '';
+            }
+          } else if (updated[p] == null || updated[p] === undefined) {
+            // Ensure existing values are strings, not null/undefined
+            hasChanges = true;
+            updated[p] = '';
+          }
+        });
+        
+        // Remove placeholders that no longer exist in the template
+        Object.keys(updated).forEach((key) => {
+          if (!allPlaceholders.includes(key)) {
+            hasChanges = true;
+            delete updated[key];
+          }
+        });
+        
+        // Only update if there are actual changes
+        return hasChanges ? updated : prev;
       });
-      setPlaceholderValues(initialValues);
     }
-  }, [template?.placeholders]);
+  }, [allPlaceholders, template]);
 
   const loadTemplate = async () => {
     try {
@@ -39,7 +105,31 @@ function TemplatePreview() {
         response = await templateApi.getById(id);
       }
       
-      setTemplate(response.data);
+      const templateData = response.data;
+      setTemplate(templateData);
+      
+      // Immediately initialize placeholder values when template loads
+      if (templateData?.htmlContent) {
+        const extractedPlaceholders = extractPlaceholders(templateData.htmlContent);
+        const backendPlaceholders = templateData.placeholders || [];
+        const merged = new Set([...backendPlaceholders, ...extractedPlaceholders]);
+        const allPlaceholdersList = Array.from(merged).sort();
+        
+        if (allPlaceholdersList.length > 0) {
+          const templateSampleData = findMatchingTemplateData(templateData.name);
+          const initialValues = {};
+          
+          allPlaceholdersList.forEach((p) => {
+            if (templateSampleData && templateSampleData[p] != null) {
+              initialValues[p] = String(templateSampleData[p]);
+            } else {
+              initialValues[p] = '';
+            }
+          });
+          
+          setPlaceholderValues(initialValues);
+        }
+      }
     } catch (error) {
       toast.error(error.message || 'Failed to load template');
     } finally {
@@ -51,21 +141,42 @@ function TemplatePreview() {
   const previewHtml = useMemo(() => {
     if (!template?.htmlContent) return '';
     
+    // Always start with the original HTML to avoid issues with multiple replacements
     let html = template.htmlContent;
     
-    // Replace placeholders with values or show placeholder name in brackets
-    Object.entries(placeholderValues).forEach(([key, value]) => {
-      const regex = new RegExp(`\\{\\{\\s*${escapeRegex(key)}\\s*\\}\\}`, 'g');
-      if (value.trim()) {
-        html = html.replace(regex, value);
-      } else {
-        // Show placeholder name in styled brackets when no value
-        html = html.replace(regex, `<span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-size: 12px;">[${key}]</span>`);
-      }
-    });
+    // Replace all placeholders - use a Set to track which ones we've replaced
+    const replacedPlaceholders = new Set();
+    
+    // First, replace placeholders that have non-empty values
+    // Process all entries in placeholderValues
+    if (placeholderValues && Object.keys(placeholderValues).length > 0) {
+      Object.entries(placeholderValues).forEach(([key, value]) => {
+        // Check if value exists and is not empty (after trimming)
+        if (value != null && value !== undefined && value !== '') {
+          const stringValue = String(value);
+          if (stringValue.trim() !== '') {
+            const regex = new RegExp(`\\{\\{\\s*${escapeRegex(key)}\\s*\\}\\}`, 'g');
+            html = html.replace(regex, stringValue);
+            replacedPlaceholders.add(key);
+          }
+        }
+      });
+    }
+    
+    // Then, replace any remaining placeholders (those without values) with styled brackets
+    // Only process placeholders that haven't been replaced yet
+    if (allPlaceholders && allPlaceholders.length > 0) {
+      allPlaceholders.forEach((key) => {
+        if (!replacedPlaceholders.has(key)) {
+          const regex = new RegExp(`\\{\\{\\s*${escapeRegex(key)}\\s*\\}\\}`, 'g');
+          // Show placeholder name in styled brackets when no value
+          html = html.replace(regex, `<span style="background: #fef3c7; color: #92400e; padding: 2px 6px; border-radius: 4px; font-size: 12px;">[${key}]</span>`);
+        }
+      });
+    }
     
     return html;
-  }, [template?.htmlContent, placeholderValues]);
+  }, [template?.htmlContent, placeholderValues, allPlaceholders]);
 
   const handlePlaceholderChange = (placeholder, value) => {
     setPlaceholderValues((prev) => ({
@@ -76,31 +187,12 @@ function TemplatePreview() {
 
   const clearAllValues = () => {
     const cleared = {};
-    template?.placeholders?.forEach((p) => {
+    allPlaceholders.forEach((p) => {
       cleared[p] = '';
     });
     setPlaceholderValues(cleared);
   };
 
-  const fillSampleValues = (dataSetId = null) => {
-    const dataSet = SAMPLE_DATA_SETS.find(d => d.id === (dataSetId || selectedDataSet));
-    const samples = {};
-    template?.placeholders?.forEach((p) => {
-      // First try to get value from selected data set
-      if (dataSet?.data[p]) {
-        samples[p] = dataSet.data[p];
-      } else {
-        // Fall back to auto-generated sample
-        samples[p] = getSampleValue(p);
-      }
-    });
-    setPlaceholderValues(samples);
-  };
-
-  const handleDataSetChange = (dataSetId) => {
-    setSelectedDataSet(dataSetId);
-    fillSampleValues(dataSetId);
-  };
 
   const formatDate = (dateString) => {
     return new Date(dateString).toLocaleDateString('en-US', {
@@ -125,7 +217,7 @@ function TemplatePreview() {
     );
   }
 
-  const hasPlaceholders = template.placeholders && template.placeholders.length > 0;
+  const hasPlaceholders = allPlaceholders && allPlaceholders.length > 0;
 
   return (
     <div className="max-w-7xl mx-auto">
@@ -163,11 +255,7 @@ function TemplatePreview() {
       </div>
 
       {/* Template Info */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 mb-6">
-        <div className="glass-card p-4">
-          <div className="text-white/50 text-xs uppercase tracking-wider mb-1">Template ID</div>
-          <div className="text-white font-mono text-sm truncate">{template.templateId}</div>
-        </div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-6">
         <div className="glass-card p-4">
           <div className="text-white/50 text-xs uppercase tracking-wider mb-1">Brand</div>
           <div className="text-white">{template.brandId || '—'}</div>
@@ -178,7 +266,7 @@ function TemplatePreview() {
         </div>
         <div className="glass-card p-4">
           <div className="text-white/50 text-xs uppercase tracking-wider mb-1">Placeholders</div>
-          <div className="text-white">{template.placeholders?.length || 0} variables</div>
+          <div className="text-white">{allPlaceholders?.length || 0} variables</div>
         </div>
       </div>
 
@@ -188,7 +276,7 @@ function TemplatePreview() {
           <div className="lg:col-span-1 space-y-4">
             <div className="glass-card p-5">
               <div className="flex items-center justify-between mb-4">
-                <h2 className="text-lg font-medium text-white">Test Values</h2>
+                <h2 className="text-lg font-medium text-white">Sample Data</h2>
                 <button
                   onClick={() => setShowPlaceholderPanel(false)}
                   className="btn-ghost p-1.5"
@@ -204,31 +292,7 @@ function TemplatePreview() {
                 Enter values to preview how your email will look with real data.
               </p>
 
-              {/* Data Set Selector */}
-              <div className="mb-4">
-                <label className="block text-xs font-medium text-white/60 mb-1.5">
-                  Load Sample Data
-                </label>
-                <select
-                  value={selectedDataSet}
-                  onChange={(e) => handleDataSetChange(e.target.value)}
-                  className="input py-2 text-sm w-full"
-                >
-                  {SAMPLE_DATA_SETS.map((ds) => (
-                    <option key={ds.id} value={ds.id}>
-                      {ds.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
               <div className="flex gap-2 mb-4">
-                <button
-                  onClick={() => fillSampleValues()}
-                  className="btn-secondary py-1.5 px-3 text-xs flex-1"
-                >
-                  Apply Sample Data
-                </button>
                 <button
                   onClick={clearAllValues}
                   className="btn-ghost py-1.5 px-3 text-xs"
@@ -238,7 +302,7 @@ function TemplatePreview() {
               </div>
 
               <div className="space-y-3 max-h-[500px] overflow-y-auto pr-2">
-                {template.placeholders.map((placeholder) => (
+                {allPlaceholders.map((placeholder) => (
                   <div key={placeholder}>
                     <label className="block text-xs font-medium text-white/60 mb-1.5 font-mono">
                       {`{{${placeholder}}}`}
@@ -271,7 +335,7 @@ function TemplatePreview() {
                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
                     </svg>
-                    <span>Test Values</span>
+                    <span>Sample Data</span>
                   </button>
                 )}
               </div>

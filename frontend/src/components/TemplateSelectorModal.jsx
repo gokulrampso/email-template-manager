@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { SAMPLE_TEMPLATES } from './TemplateBuilder/sampleTemplates';
 
 function TemplateSelectorModal({ isOpen, onClose, onSelectTemplate, onSelectData }) {
+  // onSelectData is optional
   const [selectedTemplate, setSelectedTemplate] = useState(null);
   const [showDataPreview, setShowDataPreview] = useState(false);
 
@@ -13,7 +14,9 @@ function TemplateSelectorModal({ isOpen, onClose, onSelectTemplate, onSelectData
     const template = SAMPLE_TEMPLATES.find((t) => t.id === selectedTemplate);
     onSelectTemplate(template || null);
     // Sample data is now included in the template, handled by parent
-    onSelectData(template?.sampleData || {});
+    if (onSelectData) {
+      onSelectData(template?.sampleData || {});
+    }
     onClose();
   };
 
