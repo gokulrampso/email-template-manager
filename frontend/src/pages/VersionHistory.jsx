@@ -363,13 +363,13 @@ function DiffView({ oldContent, newContent, oldVersion, newVersion }) {
         <div 
           ref={leftScrollRef}
           onScroll={handleLeftScroll}
-          className="bg-dark-900 rounded-xl overflow-hidden max-h-[500px] overflow-y-auto"
+          className="bg-dark-900 rounded-xl max-h-[500px] overflow-y-auto overflow-x-auto"
         >
           <pre className="p-4 text-xs font-mono leading-relaxed">
             {diff.map((line, index) => (
               <div
                 key={index}
-                className={`${
+                className={`flex ${
                   line.type === 'removed' 
                     ? 'bg-red-500/20 text-red-300' 
                     : line.type === 'unchanged'
@@ -377,10 +377,10 @@ function DiffView({ oldContent, newContent, oldVersion, newVersion }) {
                     : 'invisible h-0'
                 }`}
               >
-                <span className="inline-block w-8 text-right mr-3 text-white/30 select-none">
+                <span className="inline-block w-8 text-right mr-3 text-white/30 select-none flex-shrink-0">
                   {line.type !== 'added' ? line.oldLineNum : ''}
                 </span>
-                <span className={line.type === 'removed' ? 'bg-red-500/30 px-1' : ''}>
+                <span className={`whitespace-nowrap ${line.type === 'removed' ? 'bg-red-500/30 px-1' : ''}`}>
                   {line.type !== 'added' ? line.content : '\n'}
                 </span>
               </div>
@@ -398,13 +398,13 @@ function DiffView({ oldContent, newContent, oldVersion, newVersion }) {
         <div 
           ref={rightScrollRef}
           onScroll={handleRightScroll}
-          className="bg-dark-900 rounded-xl overflow-hidden max-h-[500px] overflow-y-auto"
+          className="bg-dark-900 rounded-xl max-h-[500px] overflow-y-auto overflow-x-auto"
         >
           <pre className="p-4 text-xs font-mono leading-relaxed">
             {diff.map((line, index) => (
               <div
                 key={index}
-                className={`${
+                className={`flex ${
                   line.type === 'added' 
                     ? 'bg-green-500/20 text-green-300' 
                     : line.type === 'unchanged'
@@ -412,10 +412,10 @@ function DiffView({ oldContent, newContent, oldVersion, newVersion }) {
                     : 'invisible h-0'
                 }`}
               >
-                <span className="inline-block w-8 text-right mr-3 text-white/30 select-none">
+                <span className="inline-block w-8 text-right mr-3 text-white/30 select-none flex-shrink-0">
                   {line.type !== 'removed' ? line.newLineNum : ''}
                 </span>
-                <span className={line.type === 'added' ? 'bg-green-500/30 px-1' : ''}>
+                <span className={`whitespace-nowrap ${line.type === 'added' ? 'bg-green-500/30 px-1' : ''}`}>
                   {line.type !== 'removed' ? line.content : '\n'}
                 </span>
               </div>
